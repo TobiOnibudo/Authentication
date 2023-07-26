@@ -30,7 +30,8 @@ mongoose.connect("mongodb://127.0.0.1:27017/userDB",{useNewUrlParser: true});
 
 const userSchema = new mongoose.Schema({
     email : String,
-    password: String
+    password: String,
+    secret: String
 });
 
 
@@ -55,16 +56,51 @@ app.get("/register", function(req,res){
     res .render("register");
 });
 
-app.get("/secrets", function(req,res)
+
+
+app.get("/secrets",function(req,res){
+    User.find({"secret":{$ne:null}})
+    .then(function (foundUsers) {
+        console.log(foundUsers)
+     res.render("secrets",{usersWithSecrets:foundUsers});
+      })
+    .catch(function (err)
+     {
+      console.log(err);
+      })
+});
+
+app.get("/submit", function(req,res)
 {
+    
     if (req.isAuthenticated())
     {
-        res.render("secrets");
+        res.render("submit");
     } else
     {
         res.redirect("/login");
     }
+})
+
+app.post("/submit", function (req, res) {
+    console.log(req.user);
+     User.find({username : req.user})
+       .then(foundUser => {
+        if (foundUser) {
+          foundUser[0].secret = req.body.secret;
+          return foundUser[0].save();
+        }
+        return null;
+      })
+      .then(() => {
+        res.redirect("/secrets");
+      })
+      .catch(err => {
+        console.log(err);
+      });
 });
+ 
+
 
 passport.serializeUser(function(user, done) {
     process.nextTick(function() {
@@ -118,6 +154,7 @@ app.get("/logout", (req, res, next) => {
 		res.redirect('/');
 	});
 });
+
 
 
 app.listen(3000, function(){
